@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Image, Button, StyleSheet, Alert, TextInput, Text, Switch } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
-import { getPixelsCount, getPosition } from '../../functions/meta';
+import { getPixelsCount, getPosition } from '../../functions/meta_img';
 import { end_code } from '../../functions/end_codes';
 import { binaryToString } from '../../functions/code';
-import { cleanRsaKey, decryptMessage, placeholderRSALoad } from '../../encryption/RSA';
-import { decryptChaCha20, placeholderChaCha20Load, placeholderChaCha20NLoad } from '../../encryption/ChaCha20';
+import { decryptRSA, placeholderRSALoad } from '../../encryption/RSA';
+import { decryptChaCha20, placeholderChaCha20Load, placeholderChaCha20LoadN } from '../../encryption/ChaCha20';
+import { styles } from './styles';
 
 const Load: React.FC = () => {
   const [imageFile, setImageFile] = useState<string | null>(null);
@@ -29,7 +30,6 @@ const Load: React.FC = () => {
         if (uri) {
           setImageFile(uri);
 
-          // Получаем исходные размеры изображения
           Image.getSize(
             uri,
             (width, height) => {
@@ -50,7 +50,7 @@ const Load: React.FC = () => {
         setPlaceholderKey(placeholderRSALoad);
       } else if (ChaCha20) {
         setPlaceholderKey(placeholderChaCha20Load);
-        setPlaceholderNonce(placeholderChaCha20NLoad);
+        setPlaceholderNonce(placeholderChaCha20LoadN);
       }
     };
 
@@ -124,7 +124,7 @@ const Load: React.FC = () => {
 
     let resultMes = finalMessage;
     if (RSA) {
-      resultMes = decryptMessage(finalMessage, cleanRsaKey(key)) || "";
+      resultMes = decryptRSA(finalMessage, key) || "";
     } else if (ChaCha20) {
       resultMes = decryptChaCha20(finalMessage, key, nonce);
     }
@@ -147,9 +147,7 @@ const Load: React.FC = () => {
         <Button title="Выбрать изображение" onPress={selectImage} />
       </View>
 
-      {imageFile && (
         <View style={styles.container}>
-          <Button title="Дешифровать" onPress={createHandleClick} />
           <View style={styles.encryption}>
             <Text>RSA шифрование</Text>
             <Switch
@@ -164,14 +162,13 @@ const Load: React.FC = () => {
             <Text>ChaCha20 шифрование</Text>
             <Switch
               trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={RSA ? '#f5dd4b' : '#f4f3f4'}
+              thumbColor={ChaCha20 ? '#f5dd4b' : '#f4f3f4'}
               ios_backgroundColor="#3e3e3e"
               onValueChange={() => setChaCha20(!ChaCha20)}
               value={ChaCha20}
             />
           </View>
         </View>
-      )}
 
       <Text style={styles.output}>{message}</Text>
 
@@ -191,44 +188,13 @@ const Load: React.FC = () => {
           onChangeText={(text) => setNonce(text)}
         />
       )}
+      {imageFile && 
+        <View style={styles.container}>
+          <Button title="Дешифровать" onPress={createHandleClick}/>
+        </View>
+      }
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  main: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    gap: 30,
-  },
-  photo: {
-    height: 200,
-    width: 300,
-    marginHorizontal: 5,
-  },
-  output: {
-    height: 40,
-    width: '40%',
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginTop: 20,
-  },
-  encryption: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-});
 
 export default Load;
