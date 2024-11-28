@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, View, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/types'
+import { styles } from './styles';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -14,17 +15,11 @@ const Home: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Button title="Create" onPress={() => navigation.navigate('Create')} />
       <Button title="Load" onPress={() => navigation.navigate('Load')} />
+      <Button title="EncryptionAudio" onPress={() => navigation.navigate('EncryptionAudio')} />
+      <Button title="DecryptionAudio" onPress={() => navigation.navigate('DecryptionAudio')} />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 20,
-    alignItems: 'center',
-  },
-});
 
 export default Home;
