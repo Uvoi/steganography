@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, Button, StyleSheet, Alert, TextInput, Text, Switch, TouchableOpacity } from 'react-native';
+import { View, Image, Button, Alert, TextInput, Text, Switch, TouchableOpacity } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
-import { getPixelsCount, getPosition } from '../../functions/meta';
+import { getPixelsCount, getPosition } from '../../functions/meta_img';
 import { end_code } from '../../functions/end_codes';
 import { stringToBinary } from '../../functions/code';
-import { encryptMessage, placeholderRSACreate } from '../../encryption/RSA';
-import { encryptChaCha20, getKey, getNonce, placeholderChaCha20Create, placeholderChaCha20NCreate } from '../../encryption/ChaCha20';
+import { encryptRSA, placeholderRSACreate, placeholderRSACreatePK } from '../../encryption/RSA';
+import { encryptChaCha20, getKey, getNonce, placeholderChaCha20Create, placeholderChaCha20CreateN } from '../../encryption/ChaCha20';
+import {styles} from './styles'
 
 const Create: React.FC = () => {
   const [imageFile, setImageFile] = useState<string | null>(null);
@@ -30,7 +31,6 @@ const Create: React.FC = () => {
         if (uri) {
           setImageFile(uri);
 
-          // Получаем исходные размеры изображения
           Image.getSize(
             uri,
             (width, height) => {
@@ -49,9 +49,10 @@ const Create: React.FC = () => {
     const selectPlaceholder = () => {
       if (RSA) {
         setPlaceholderKey(placeholderRSACreate);
+        setPlaceholderNonce(placeholderRSACreatePK)
       } else if (ChaCha20) {
         setPlaceholderKey(placeholderChaCha20Create);
-        setPlaceholderNonce(placeholderChaCha20NCreate);
+        setPlaceholderNonce(placeholderChaCha20CreateN);
       }
     };
     selectPlaceholder();
@@ -118,9 +119,9 @@ const Create: React.FC = () => {
     
 
     if (RSA) {
-      const encryptedMessage = encryptMessage(message);
-      const privateKey = encryptedMessage.privateKey;
-      setKey(privateKey);
+      const encryptedMessage = encryptRSA(message, nonce);
+      setKey(encryptedMessage.privateKey || "Отсутствует");
+      setNonce(encryptedMessage.publicKey || "Отсутствует")
     
       if (encryptedMessage.encryptedMessage) {
         messageToCode = encryptedMessage.encryptedMessage;
@@ -187,8 +188,9 @@ const Create: React.FC = () => {
         )}
       </View>
 
+      <Button title="Выбрать изображение" onPress={selectImage} />
+
       <View style={styles.container}>
-        <Button title="Выбрать изображение" onPress={selectImage} />
         <View style={styles.encryption}>
           <Text>RSA шифрование</Text>
           <Switch
@@ -203,20 +205,13 @@ const Create: React.FC = () => {
           <Text>ChaCha20 шифрование</Text>
           <Switch
             trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={RSA ? '#f5dd4b' : '#f4f3f4'}
+            thumbColor={ChaCha20 ? '#f5dd4b' : '#f4f3f4'}
             ios_backgroundColor="#3e3e3e"
             onValueChange={() => setChaCha20(!ChaCha20)}
             value={ChaCha20}
           />
         </View>
       </View>
-
-      {imageFile && (
-        <View style={styles.container}>
-          <Button title="Зашифровать" onPress={createHandleClick} disabled={!message} />
-          {imageFileNew && <Button title="Скачать PNG" onPress={downloadImage} />}
-        </View>
-      )}
 
       <TextInput
         style={styles.input}
@@ -240,11 +235,11 @@ const Create: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-      {ChaCha20 && (
+      {(RSA || ChaCha20) && (
         <View style={styles.container}>
           <TextInput
             style={styles.outputKey}
-            editable={ChaCha20}
+            editable={ChaCha20 || RSA}
             value={nonce}
             placeholder={placeholderNonce}
             onChangeText={(text) => setNonce(text)}
@@ -255,60 +250,16 @@ const Create: React.FC = () => {
         </TouchableOpacity>
         </View>
       )}
+
+      {imageFile && (
+        <View style={styles.container}>
+          <Button title="Зашифровать" onPress={createHandleClick} disabled={!message} />
+          {imageFileNew && <Button title="Скачать PNG" onPress={downloadImage} />}
+        </View>
+      )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  main: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  container: {
-    width: '50%',
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginBottom: 10,
-    gap: 30,
-  },
-  photo: {
-    height: 200,
-    width: 300,
-    marginHorizontal: 5,
-  },
-  input: {
-    height: 40,
-    width: '40%',
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-  },
-  encryption: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  outputKey: {
-    width: '100%',
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-  },
-  copyBtn: {
-    fontSize: 10,
-    backgroundColor: 'gray',
-    color: 'black',
-    padding: 8,
-    borderRadius: 10,
-  },
-});
 
 export default Create;
