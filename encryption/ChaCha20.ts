@@ -60,6 +60,6 @@ export function getNonce(textNonce: string): string {
 
 export const placeholderChaCha20Load = "Введите ChaCha20 ключ";
 export const placeholderChaCha20Create = "ChaCha20 ключ";
-export const placeholderChaCha20NLoad = "Введите ChaCha20 nonce";
-export const placeholderChaCha20NCreate = "ChaCha20 nonce";
+export const placeholderChaCha20LoadN = "Введите ChaCha20 nonce";
+export const placeholderChaCha20CreateN = "ChaCha20 nonce";
 export const descriptionChaCha20 = "Симметричный шифр требующий key(32 байта(символа)) и nonce(24 байта(символа)). В случае не заполнения заполняются случайными символами.";
