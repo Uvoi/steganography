@@ -7,4 +7,12 @@ export const styles = StyleSheet.create({
       gap: 20,
       alignItems: 'center',
     },
+    encryption: 
+    {
+      backgroundColor: "#C65753",
+    },
+    decryption: 
+    {
+      backgroundColor: "#7ccf6e",
+    }
   });
