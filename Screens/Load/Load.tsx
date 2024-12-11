@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, Button, StyleSheet, Alert, TextInput, Text, Switch } from 'react-native';
+import { View, Image, Button, Alert, TextInput, Text, Switch } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { getPixelsCount, getPosition } from '../../functions/meta_img';
 import { end_code } from '../../functions/end_codes';
@@ -7,6 +7,7 @@ import { binaryToString } from '../../functions/code';
 import { decryptRSA, placeholderRSALoad } from '../../encryption/RSA';
 import { decryptChaCha20, placeholderChaCha20Load, placeholderChaCha20LoadN } from '../../encryption/ChaCha20';
 import { styles } from './styles';
+import { decryptLuca, placeholderLucaLoad } from '../../encryption/Luca';
 
 const Load: React.FC = () => {
   const [imageFile, setImageFile] = useState<string | null>(null);
@@ -15,6 +16,7 @@ const Load: React.FC = () => {
   const [nonce, setNonce] = useState<string>('');
   const [RSA, setRSA] = useState<boolean>(false);
   const [ChaCha20, setChaCha20] = useState<boolean>(false);
+  const [Luca, setLuca] = useState<boolean>(false);
   const [placeholderKey, setPlaceholderKey] = useState<string>('');
   const [placeholderNonce, setPlaceholderNonce] = useState<string>('');
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -52,10 +54,14 @@ const Load: React.FC = () => {
         setPlaceholderKey(placeholderChaCha20Load);
         setPlaceholderNonce(placeholderChaCha20LoadN);
       }
+      else if (Luca)
+      {
+        setPlaceholderKey(placeholderLucaLoad)
+      }
     };
 
     selectPlaceholder();
-  }, [RSA, ChaCha20]);
+  }, [RSA, ChaCha20, Luca]);
 
   const decodePixel = (num: number): string => {
     return num % 2 === 1 ? '1' : '0';
@@ -128,6 +134,10 @@ const Load: React.FC = () => {
     } else if (ChaCha20) {
       resultMes = decryptChaCha20(finalMessage, key, nonce);
     }
+    else if (Luca)
+    {
+      resultMes = decryptLuca(finalMessage,key)
+    }
     setMessage(resultMes);
     console.log(data.slice(pos * 4, pos * 4 + binaryMessage.length), '-post');
     ctx.putImageData(imageData, 0, 0);
@@ -168,11 +178,21 @@ const Load: React.FC = () => {
               value={ChaCha20}
             />
           </View>
+          <View style={styles.encryption}>
+            <Text>Luca шифрование</Text>
+            <Switch
+              trackColor={{ false: '#767577', true: '#81b0ff' }}
+              thumbColor={Luca ? '#f5dd4b' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={() => setLuca(!Luca)}
+              value={Luca}
+            />
+          </View>
         </View>
 
       <Text style={styles.output}>{message}</Text>
 
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <TextInput
           style={styles.output}
           placeholder={placeholderKey}

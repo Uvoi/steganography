@@ -7,6 +7,7 @@ import { stringToBinary } from '../../functions/code';
 import { encryptRSA, placeholderRSACreate, placeholderRSACreatePK } from '../../encryption/RSA';
 import { encryptChaCha20, getKey, getNonce, placeholderChaCha20Create, placeholderChaCha20CreateN } from '../../encryption/ChaCha20';
 import {styles} from './styles'
+import { encryptLuca, placeholderLucaCreatePriv, placeholderLucaCreatePub } from '../../encryption/Luca';
 
 const Create: React.FC = () => {
   const [imageFile, setImageFile] = useState<string | null>(null);
@@ -16,6 +17,7 @@ const Create: React.FC = () => {
   const [nonce, setNonce] = useState<string>('');
   const [RSA, setRSA] = useState<boolean>(false);
   const [ChaCha20, setChaCha20] = useState<boolean>(false);
+  const [Luca, setLuca] = useState<boolean>(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [placeholderKey, setPlaceholderKey] = useState<string>('');
   const [placeholderNonce, setPlaceholderNonce] = useState<string>('');
@@ -53,10 +55,14 @@ const Create: React.FC = () => {
       } else if (ChaCha20) {
         setPlaceholderKey(placeholderChaCha20Create);
         setPlaceholderNonce(placeholderChaCha20CreateN);
+      } else if (Luca)
+      {
+        setPlaceholderKey(placeholderLucaCreatePriv);
+        setPlaceholderNonce(placeholderLucaCreatePub);
       }
     };
     selectPlaceholder();
-  }, [RSA, ChaCha20]);
+  }, [RSA, ChaCha20, Luca]);
 
   const toEven = (num: number): number => (num % 2 === 1 ? num - 1 : num);
 
@@ -81,7 +87,7 @@ const Create: React.FC = () => {
       HTMLImage.crossOrigin = 'Anonymous';
       HTMLImage.src = imageFile;
 
-      HTMLImage.onload = () => {
+      HTMLImage.onload = async () => {
         const canvas = document.createElement('canvas');
         canvas.width = HTMLImage.width;
         canvas.height = HTMLImage.height;
@@ -89,7 +95,7 @@ const Create: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(HTMLImage, 0, 0);
-          insertData(ctx, HTMLImage.width, HTMLImage.height);
+          await insertData(ctx, HTMLImage.width, HTMLImage.height);
           const dataUrl = canvas.toDataURL('image/png');
           setImageFileNew(dataUrl);
           console.log('Кодирование завершено');
@@ -106,7 +112,7 @@ const Create: React.FC = () => {
     }
   };
 
-  const insertData = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  const insertData = async (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
     const pixelsCount = getPixelsCount(ctx, width, height);
@@ -135,10 +141,22 @@ const Create: React.FC = () => {
       setNonce(cc20nonce);
       messageToCode = encryptChaCha20(message, cc20key, cc20nonce);
     }
+      else if (Luca)
+      {
+       let luca = await encryptLuca(message, nonce)
+       messageToCode = luca.eMessage
+       luca.privKey && setKey(luca.privKey)
+       luca.pubKey && setNonce(luca.pubKey)
+       console.log(messageToCode)
+      }
+    
 
-    const binaryMessage = stringToBinary(messageToCode) + end_code[Math.floor(Math.random() * end_code.length)];
+    let binaryMessage = stringToBinary(messageToCode) + end_code[Math.floor(Math.random() * end_code.length)];
     console.log(binaryMessage.length);
-    console.log(binaryMessage, '--binary-code ');
+
+
+    // binaryMessage = stringToBinary("aaa") + end_code[Math.floor(Math.random() * end_code.length)]
+        console.log(binaryMessage, '--binary-code ');
 
     console.log(data.slice(0, data.length), '-до кодирования');
 
@@ -211,6 +229,16 @@ const Create: React.FC = () => {
             value={ChaCha20}
           />
         </View>
+        <View style={styles.encryption}>
+          <Text>Luca шифрование</Text>
+          <Switch
+            trackColor={{ false: '#767577', true: '#81b0ff' }}
+            thumbColor={Luca ? '#f5dd4b' : '#f4f3f4'}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() => setLuca(!Luca)}
+            value={Luca}
+          />
+        </View>
       </View>
 
       <TextInput
@@ -220,7 +248,7 @@ const Create: React.FC = () => {
         onChangeText={(text) => setMessage(text)}
       />
 
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <View style={styles.container}>
           <TextInput
             style={styles.outputKey}
@@ -235,11 +263,11 @@ const Create: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <View style={styles.container}>
           <TextInput
             style={styles.outputKey}
-            editable={ChaCha20 || RSA}
+            editable={ChaCha20 || RSA || Luca}
             value={nonce}
             placeholder={placeholderNonce}
             onChangeText={(text) => setNonce(text)}
