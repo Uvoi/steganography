@@ -14,6 +14,7 @@ import { binaryToString } from '../../functions/code';
 import { styles } from './styles';
 import { decryptRSA, placeholderRSALoad } from '../../encryption/RSA';
 import { decryptChaCha20, placeholderChaCha20Load, placeholderChaCha20LoadN } from '../../encryption/ChaCha20';
+import { decryptLuca, placeholderLucaLoad } from '../../encryption/Luca';
 
 const DecryptionAudio: React.FC = () => {
   const [audioPath, setAudioPath] = useState<string | null>(null);
@@ -25,11 +26,24 @@ const DecryptionAudio: React.FC = () => {
   const [placeholderNonce, setPlaceholderNonce] = useState<string>('');
   const [RSA, setRSA] = useState(false);
   const [ChaCha20, setChaCha20] = useState(false);
+  const [Luca, setLuca] = useState(false);
 
   useEffect(() => {
-    setPlaceholderKey(RSA ? placeholderRSALoad : ChaCha20 ? placeholderChaCha20Load : '');
-    setPlaceholderNonce(ChaCha20 ? placeholderChaCha20LoadN : '');
-  }, [RSA, ChaCha20]);
+    const selectPlaceholder = () => {
+      if (RSA) {
+        setPlaceholderKey(placeholderRSALoad);
+      } else if (ChaCha20) {
+        setPlaceholderKey(placeholderChaCha20Load);
+        setPlaceholderNonce(placeholderChaCha20LoadN);
+      }
+      else if (Luca)
+      {
+        setPlaceholderKey(placeholderLucaLoad);
+      }
+    };
+
+    selectPlaceholder();
+  }, [RSA, ChaCha20, Luca]);
 
   const decodeMessage = (audioBuffer: AudioBuffer, startPos: number): string => {
     let binaryMessage = '';
@@ -84,6 +98,10 @@ const DecryptionAudio: React.FC = () => {
       resultMes = decryptRSA(decodedMessage, key) || "";
     } else if (ChaCha20) {
       resultMes = decryptChaCha20(decodedMessage, key, nonce);
+    }
+    else if (Luca)
+    {
+      resultMes = decryptLuca(decodedMessage,key)
     }
     setMessage(resultMes);
 
@@ -148,11 +166,20 @@ const DecryptionAudio: React.FC = () => {
             value={ChaCha20}
           />
         </View>
+        <View style={styles.encryption}>
+          <Text>Luca Encryption</Text>
+          <Switch
+            trackColor={{ false: '#767577', true: '#81b0ff' }}
+            thumbColor={Luca ? '#f5dd4b' : '#f4f3f4'}
+            onValueChange={() => setLuca(!Luca)}
+            value={Luca}
+          />
+        </View>
       </View>
 
       {message ? <Text style={styles.output}>{String(message)}</Text> : null}
 
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <TextInput
           style={styles.output}
           placeholder={placeholderKey}

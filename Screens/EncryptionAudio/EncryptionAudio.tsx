@@ -24,6 +24,7 @@ import {
   placeholderChaCha20Create,
   placeholderChaCha20CreateN,
 } from '../../encryption/ChaCha20';
+import { encryptLuca, placeholderLucaCreatePriv, placeholderLucaCreatePub } from '../../encryption/Luca';
 
 const EncryptionAudio: React.FC = () => {
   const [audioPath, setAudioPath] = useState<string | null>(null);
@@ -34,6 +35,7 @@ const EncryptionAudio: React.FC = () => {
   const [nonce, setNonce] = useState<string>('');
   const [RSA, setRSA] = useState(false);
   const [ChaCha20, setChaCha20] = useState(false);
+  const [Luca, setLuca] = useState(false);
   const [placeholderKey, setPlaceholderKey] = useState<string>('');
   const [placeholderNonce, setPlaceholderNonce] = useState<string>('');
   
@@ -47,10 +49,15 @@ const EncryptionAudio: React.FC = () => {
         setPlaceholderKey(placeholderChaCha20Create);
         setPlaceholderNonce(placeholderChaCha20CreateN);
       }
+      else if (Luca)
+      {
+        setPlaceholderKey(placeholderLucaCreatePriv);
+        setPlaceholderNonce(placeholderLucaCreatePub);
+      }
     };
 
     selectPlaceholder();
-  }, [RSA, ChaCha20]);
+  }, [RSA, ChaCha20, Luca]);
 
   const adjustParity = (value: number, makeOdd: boolean): number => {
     const strValue = value.toFixed(6);
@@ -90,6 +97,13 @@ const EncryptionAudio: React.FC = () => {
       setKey(cc20key);
       setNonce(cc20nonce);
       messageToCode = encryptChaCha20(message, cc20key, cc20nonce);
+    }
+    else if (Luca)
+    {
+      let luca = await encryptLuca(message, nonce)
+       messageToCode = luca.eMessage
+       luca.privKey && setKey(luca.privKey)
+       luca.pubKey && setNonce(luca.pubKey)
     }
 
     const binaryMessage = stringToBinary(messageToCode) + end_code[Math.floor(Math.random() * end_code.length)];
@@ -224,6 +238,16 @@ const EncryptionAudio: React.FC = () => {
             value={ChaCha20}
           />
         </View>
+        <View style={styles.encryption}>
+          <Text>Luca шифрование</Text>
+          <Switch
+            trackColor={{ false: '#767577', true: '#81b0ff' }}
+            thumbColor={Luca ? '#f5dd4b' : '#f4f3f4'}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() => setLuca(!Luca)}
+            value={Luca}
+          />
+        </View>
       </View>
   
       <TextInput
@@ -233,7 +257,7 @@ const EncryptionAudio: React.FC = () => {
         onChangeText={(text) => setMessage(text)}
       />
   
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <View style={styles.container}>
           <TextInput
             style={styles.outputKey}
@@ -248,11 +272,11 @@ const EncryptionAudio: React.FC = () => {
         </View>
       )}
   
-      {(RSA || ChaCha20) && (
+      {(RSA || ChaCha20 || Luca) && (
         <View style={styles.container}>
           <TextInput
             style={styles.outputKey}
-            editable={ChaCha20 || RSA}
+            editable={ChaCha20 || RSA || Luca}
             value={nonce}
             placeholder={placeholderNonce}
             onChangeText={(text) => setNonce(text)}
